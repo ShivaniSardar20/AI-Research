@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+
+# Environment
+.env
+
+# Database
+db.sqlite3
+
+# Uploaded media
+media/
+
+# Build output
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
