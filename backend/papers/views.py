@@ -2,6 +2,9 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Paper
 from .ai import call_openrouter
 
@@ -246,3 +249,68 @@ def chat_with_paper(request):
         return JsonResponse({'error': f'AI processing failed: {str(e)}'}, status=500)
 
     return JsonResponse({'answer': answer.strip()})
+
+
+# ─── signup ─────────────────────────────────────────────────
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def signup(request):
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body.'}, status=400)
+
+    username = body.get('username', '').strip()
+    email = body.get('email', '').strip()
+    password = body.get('password', '')
+
+    if not username or not email or not password:
+        return JsonResponse({'error': 'Username, email, and password are required.'}, status=400)
+
+    if User.objects.filter(username=username).exists():
+        return JsonResponse({'error': 'Username already exists.'}, status=400)
+
+    if User.objects.filter(email=email).exists():
+        return JsonResponse({'error': 'Email already exists.'}, status=400)
+
+    try:
+        user = User.objects.create_user(username=username, email=email, password=password)
+        refresh = RefreshToken.for_user(user)
+        return JsonResponse({
+            'message': 'User created successfully.',
+            'user_id': user.id,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=201)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to create user: {str(e)}'}, status=500)
+
+
+# ─── login ──────────────────────────────────────────────────
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def login_view(request):
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body.'}, status=400)
+
+    username = body.get('username', '').strip()
+    password = body.get('password', '')
+
+    if not username or not password:
+        return JsonResponse({'error': 'Username and password are required.'}, status=400)
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        return JsonResponse({
+            'message': 'Login successful.',
+            'user_id': user.id,
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=200)
+    else:
+        return JsonResponse({'error': 'Invalid credentials.'}, status=401)

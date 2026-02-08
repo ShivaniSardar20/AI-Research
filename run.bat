@@ -27,9 +27,9 @@ echo [1/2] Starting Django Backend Server...
 start "AI Research Backend - Django" cmd /k "cd /d "%CD%\backend" && python manage.py runserver"
 timeout /t 3 /nobreak > nul
 
-REM Start Vite frontend server
+REM Start React frontend server (using react-scripts)
 echo [2/2] Starting React Frontend Server...
-start "AI Research Frontend - Vite" cmd /k "cd /d "%CD%\frontend" && npx vite"
+start "AI Research Frontend - React" cmd /k "cd /d "%CD%\frontend" && npm start"
 
 echo.
 echo ===============================================
@@ -37,7 +37,7 @@ echo    Servers are starting in separate windows
 echo ===============================================
 echo.
 echo Backend:  http://127.0.0.1:8000/
-echo Frontend: http://localhost:5173/
+echo Frontend: http://localhost:3000/
 echo.
 echo Press Ctrl+C in each window to stop servers
 echo ===============================================

@@ -2,6 +2,22 @@ import axios from 'axios'
 
 const BASE = '/api'
 
+// Auth functions
+export async function signup(data) {
+  const res = await axios.post(`${BASE}/auth/signup/`, data)
+  return res.data
+}
+
+export async function login(data) {
+  const res = await axios.post(`${BASE}/auth/login/`, data)
+  return res.data
+}
+
+export async function refreshToken(data) {
+  const res = await axios.post(`${BASE}/auth/token/refresh/`, data)
+  return res.data
+}
+
 export async function uploadPDF(file, text = '') {
   const form = new FormData()
   form.append('file', file)

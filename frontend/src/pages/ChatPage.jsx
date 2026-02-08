@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { listPapers, chatQuery } from '../utils/api'
 import { speak, listen, isSpeechSupported } from '../utils/speech'
 import Spinner from '../components/Spinner'
+import React from 'react'
+const ChatBox = React.lazy(() => import('../components/ChatBox'))
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -157,86 +159,16 @@ export default function ChatPage({ addToast }) {
           </button>
         </div>
 
-        {/* Chat Window */}
-        <div ref={scrollRef} className="flex-1 rounded-lg overflow-y-auto flex flex-col gap-4 p-4" style={{ border: '1px solid rgba(201,168,76,0.15)', background: '#0e0e16', minHeight: '300px', maxHeight: '52vh' }}>
-          {messages.length === 0 && (
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <div style={{ fontSize: '2rem', opacity: 0.25, marginBottom: '10px' }}>💬</div>
-              <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b', textAlign: 'center' }}>
-                {selectedPaper ? 'Ask anything about this paper.' : 'Select a paper first.'}
-              </p>
-            </div>
+        {/* Chat Box (extracted) */}
+        <div style={{ width: '100%' }}>
+          {/* Lazy-load ChatBox to keep concern separated */}
+          {selectedPaper ? (
+            <React.Suspense fallback={<div style={{ padding: 20 }}>Loading chat…</div>}>
+              <ChatBox selectedPaper={selectedPaper} addToast={addToast} />
+            </React.Suspense>
+          ) : (
+            <div style={{ padding: 20, color: '#7a756b' }}>Select a paper to enable chat.</div>
           )}
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-[85%] rounded-lg px-4 py-3"
-                style={{
-                  background: m.role === 'user' ? 'rgba(201,168,76,0.12)' : 'rgba(18,18,26,0.8)',
-                  border: `1px solid ${m.role === 'user' ? 'rgba(201,168,76,0.3)' : 'rgba(201,168,76,0.1)'}`,
-                }}>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.67rem', color: m.role === 'user' ? '#c9a84c' : '#a89e8a', lineHeight: 1.85 }}>
-                  {m.text}
-                </p>
-              </div>
-            </div>
-          ))}
-          {sending && (
-            <div className="flex justify-start">
-              <div className="rounded-lg px-4 py-3" style={{ background: 'rgba(18,18,26,0.8)', border: '1px solid rgba(201,168,76,0.1)' }}>
-                <Spinner size={16} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input Bar */}
-        <div className="mt-3 flex gap-2 items-center">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
-            placeholder="Ask a question…"
-            disabled={!selectedPaper || sending}
-            className="flex-1 outline-none"
-            style={{
-              background: '#0e0e16', border: '1px solid rgba(201,168,76,0.22)', borderRadius: '6px',
-              padding: '12px 16px', color: '#e8e4dc',
-              fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem',
-              opacity: selectedPaper ? 1 : 0.45
-            }}
-          />
-
-          {/* Voice Button */}
-          {speech.stt && (
-            <button onClick={startListening} disabled={listening || sending || !selectedPaper}
-              className="transition-all duration-200"
-              style={{
-                background: listening ? 'rgba(231,76,60,0.25)' : 'rgba(201,168,76,0.1)',
-                border: `1px solid ${listening ? 'rgba(231,76,60,0.5)' : 'rgba(201,168,76,0.3)'}`,
-                borderRadius: '6px', padding: '12px 14px', cursor: 'pointer', color: listening ? '#e74c3c' : '#c9a84c',
-                fontSize: '1rem', display: 'flex', alignItems: 'center',
-                opacity: selectedPaper ? 1 : 0.35
-              }}>
-              {listening ? '⏺' : '🎙'}
-            </button>
-          )}
-
-          {/* Send */}
-          <button onClick={() => sendMessage(input)} disabled={!input.trim() || !selectedPaper || sending}
-            className="transition-all duration-200"
-            style={{
-              background: '#c9a84c', color: '#0a0a0f', border: 'none', borderRadius: '6px',
-              padding: '12px 22px', cursor: 'pointer',
-              fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.65rem',
-              letterSpacing: '1.5px', textTransform: 'uppercase',
-              opacity: (!input.trim() || !selectedPaper || sending) ? 0.4 : 1
-            }}>Send</button>
-        </div>
-
-        {/* Status indicators */}
-        <div className="flex gap-4 mt-2 px-1">
-          {speaking && <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.58rem', color: '#5dade2' }}>🔊 Speaking…</p>}
-          {listening && <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.58rem', color: '#e74c3c' }}>⏺ Listening…</p>}
         </div>
       </div>
     </div>
