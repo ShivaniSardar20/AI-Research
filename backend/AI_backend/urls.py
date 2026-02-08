@@ -3,7 +3,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('api/papers/', include('papers.urls')),
+    path('api/', include('papers.urls')),
 ]
 
 if settings.DEBUG:
