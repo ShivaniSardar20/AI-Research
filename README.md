@@ -127,6 +127,30 @@ Important deployment note:
 - Django must be deployed separately on a Python-capable platform such as Render, Railway, or PythonAnywhere.
 - After the backend is live, set `REACT_APP_API_BASE_URL` in Netlify to the deployed backend URL.
 
+## Render Backend Deploy
+
+This repo also includes a root [render.yaml](./render.yaml) for the Django API.
+
+Backend environment variables you should set in Render:
+
+```env
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_MODEL=openai/gpt-4o-mini
+DJANGO_SECRET_KEY=replace-with-a-strong-secret
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=your-render-service.onrender.com
+CORS_ALLOWED_ORIGINS=https://your-netlify-site.netlify.app
+CSRF_TRUSTED_ORIGINS=https://your-netlify-site.netlify.app
+DATABASE_URL=postgres://...
+```
+
+Notes:
+
+- `gunicorn` is configured as the backend web server.
+- `/health/` is available for health checks.
+- If you use Render Postgres, set `DATABASE_URL` from the Render database service.
+- After the backend URL is live, set the same URL in Netlify as `REACT_APP_API_BASE_URL=https://your-render-service.onrender.com/api`.
+
 ## License
 
 MIT

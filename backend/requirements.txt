@@ -4,3 +4,6 @@ djangorestframework>=3.14
 djangorestframework-simplejwt>=5.2
 python-dotenv>=1.0
 requests>=2.31
+gunicorn>=22.0
+dj-database-url>=2.2
+whitenoise>=6.7
