@@ -2,16 +2,24 @@ import { useState } from 'react'
 import { searchPapers } from '../utils/api'
 import Spinner from '../components/Spinner'
 
+const searchPrompts = [
+  'What are the main findings on neural scaling?',
+  'Which paper discusses reinforcement learning limitations?',
+  'Show research mentioning multimodal benchmarks.',
+]
+
 export default function SearchPage({ addToast }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState(null)  // null = untouched, [] = empty
+  const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const handleSearch = async () => {
-    if (!query.trim()) return
+  const handleSearch = async (nextQuery = query) => {
+    const normalizedQuery = nextQuery.trim()
+    if (!normalizedQuery) return
     setLoading(true)
+    setQuery(normalizedQuery)
     try {
-      const data = await searchPapers(query.trim())
+      const data = await searchPapers(normalizedQuery)
       setResults(data)
     } catch {
       addToast({ type: 'error', message: 'Search failed. Is the backend running?' })
@@ -20,81 +28,62 @@ export default function SearchPage({ addToast }) {
   }
 
   return (
-    <div className="min-h-screen px-4" style={{ paddingTop: '100px', background: '#0a0a0f' }}>
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', letterSpacing: '3px', textTransform: 'uppercase', color: '#c9a84c', marginBottom: '10px' }}>— Search</p>
-          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '2rem', color: '#e8e4dc', fontWeight: 400 }}>Find across your <em style={{ color: '#c9a84c' }}>library</em></h1>
+    <div className="feature-shell">
+      <div className="feature-header">
+        <div>
+          <p className="feature-eyebrow">Search</p>
+          <h2 className="feature-title">Run natural-language retrieval across your paper library</h2>
+          <p className="feature-copy">
+            This uses your backend search endpoint and surfaces matches with snippets and placeholder relevance scores.
+          </p>
         </div>
+      </div>
 
-        {/* Search Input */}
-        <div className="flex gap-2">
+      <div className="glass-panel feature-panel">
+        <div className="search-row">
           <input
             value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="e.g. What are the findings on neural scaling?"
-            className="flex-1 outline-none transition-border duration-200"
-            style={{
-              background: '#0e0e16', border: '1px solid rgba(201,168,76,0.22)',
-              borderRadius: '6px', padding: '13px 18px', color: '#e8e4dc',
-              fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem',
-            }}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="Ask a retrieval question about your uploaded papers"
           />
-          <button onClick={handleSearch} disabled={loading || !query.trim()}
-            className="transition-all duration-200"
-            style={{
-              background: loading ? 'rgba(201,168,76,0.35)' : '#c9a84c',
-              color: '#0a0a0f', border: 'none', borderRadius: '6px',
-              padding: '13px 26px', cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.65rem',
-              letterSpacing: '2px', textTransform: 'uppercase',
-              display: 'flex', alignItems: 'center', gap: '8px'
-            }}>
-            {loading ? <Spinner size={14} /> : '🔍'} Search
+          <button type="button" onClick={() => handleSearch()} disabled={loading || !query.trim()}>
+            {loading ? <><Spinner size={14} /> Searching...</> : 'Search'}
           </button>
         </div>
-
-        {/* Results */}
-        <div className="mt-8">
-          {results === null && (
-            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b', textAlign: 'center', paddingTop: '40px' }}>
-              Type a question above to search your document library.
-            </p>
-          )}
-
-          {results !== null && results.length === 0 && (
-            <div className="rounded-lg py-14 text-center" style={{ border: '1px solid rgba(201,168,76,0.12)', background: '#0e0e16' }}>
-              <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b' }}>No matching papers found.</p>
-            </div>
-          )}
-
-          {results !== null && results.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: '#7a756b', letterSpacing: '1px' }}>
-                {results.length} result{results.length !== 1 ? 's' : ''} found
-              </p>
-              {results.map((r, i) => (
-                <div key={i} className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(201,168,76,0.18)', background: '#12121a' }}>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.05rem', color: '#e8e4dc', fontWeight: 400 }}>{r.title || r.filename}</p>
-                      {r.score !== undefined && (
-                        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.58rem', color: '#c9a84c', background: 'rgba(201,168,76,0.12)', padding: '3px 8px', borderRadius: '50px' }}>
-                          {Math.round(r.score * 100)}% match
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.67rem', color: '#7a756b', lineHeight: 1.8 }}>
-                      {r.snippet || r.filename}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="prompt-row">
+          {searchPrompts.map((prompt) => (
+            <button key={prompt} type="button" className="ghost-chip" onClick={() => handleSearch(prompt)}>
+              {prompt}
+            </button>
+          ))}
         </div>
+      </div>
+
+      <div className="result-list">
+        {results === null && (
+          <div className="glass-panel empty-state">
+            <h3>Start with a question</h3>
+            <p>Search inspects titles, filenames, extracted text, summaries, and insights.</p>
+          </div>
+        )}
+
+        {results !== null && results.length === 0 && (
+          <div className="glass-panel empty-state">
+            <h3>No matching papers found</h3>
+            <p>Try broader wording or generate summaries and insights first so more fields are searchable.</p>
+          </div>
+        )}
+
+        {results?.length > 0 && results.map((result, index) => (
+          <div key={`${result.id}-${index}`} className="glass-panel result-card">
+            <div className="panel-row">
+              <h3>{result.title || result.filename}</h3>
+              <span className="score-pill">{Math.round((result.score || 0) * 100)}% match</span>
+            </div>
+            <p className="result-snippet">{result.snippet || result.filename}</p>
+          </div>
+        ))}
       </div>
     </div>
   )

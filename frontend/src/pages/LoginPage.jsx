@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material'
+import Alert from '@mui/material/Alert'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage({ setPage }) {
@@ -19,55 +19,47 @@ export default function LoginPage({ setPage }) {
     const result = await login(form)
     setLoading(false)
     if (result.success) {
-      setPage('library') // Redirect to library after login
+      setPage('dashboard')
     } else {
       setError(result.error)
     }
   }
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" gutterBottom>Login</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Username"
+    <div className="auth-card">
+      <p className="auth-eyebrow">Member Access</p>
+      <h2 className="auth-title">Login to continue your research workflow</h2>
+      <p className="auth-copy">Access uploads, summaries, search, and chat from one workspace.</p>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <form onSubmit={handleSubmit} className="auth-form">
+        <label className="auth-field">
+          <span>Username</span>
+          <input
             name="username"
             value={form.username}
             onChange={handleChange}
-            margin="normal"
+            placeholder="Enter your username"
             required
           />
-          <TextField
-            fullWidth
-            label="Password"
+        </label>
+        <label className="auth-field">
+          <span>Password</span>
+          <input
             name="password"
             type="password"
             value={form.password}
             onChange={handleChange}
-            margin="normal"
+            placeholder="Enter your password"
             required
           />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
-        <Button
-          fullWidth
-          sx={{ mt: 1 }}
-          onClick={() => setPage('signup')}
-        >
-          Don't have an account? Sign up
-        </Button>
-      </Paper>
-    </Box>
+        </label>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging In...' : 'Login'}
+        </button>
+      </form>
+      <button type="button" className="auth-switch" onClick={() => setPage('signup')}>
+        Need an account? Create one
+      </button>
+    </div>
   )
 }

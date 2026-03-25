@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material'
+import Alert from '@mui/material/Alert'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function SignupPage({ setPage }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '' })
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { signup } = useAuth()
@@ -14,70 +14,82 @@ export default function SignupPage({ setPage }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
-    const result = await signup(form)
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setLoading(true)
+    const result = await signup({
+      username: form.username,
+      email: form.email,
+      password: form.password,
+    })
     setLoading(false)
     if (result.success) {
-      setPage('library') // Redirect to library after signup
+      setPage('dashboard')
     } else {
       setError(result.error)
     }
   }
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', mt: 8 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" gutterBottom>Sign Up</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Username"
+    <div className="auth-card">
+      <p className="auth-eyebrow">Create Account</p>
+      <h2 className="auth-title">Start a persistent AI research workspace</h2>
+      <p className="auth-copy">Create an account to manage papers and keep your analysis history in one place.</p>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <form onSubmit={handleSubmit} className="auth-form">
+        <label className="auth-field">
+          <span>Username</span>
+          <input
             name="username"
             value={form.username}
             onChange={handleChange}
-            margin="normal"
+            placeholder="Choose a username"
             required
           />
-          <TextField
-            fullWidth
-            label="Email"
+        </label>
+        <label className="auth-field">
+          <span>Email</span>
+          <input
             name="email"
             type="email"
             value={form.email}
             onChange={handleChange}
-            margin="normal"
+            placeholder="name@example.com"
             required
           />
-          <TextField
-            fullWidth
-            label="Password"
+        </label>
+        <label className="auth-field">
+          <span>Password</span>
+          <input
             name="password"
             type="password"
             value={form.password}
             onChange={handleChange}
-            margin="normal"
+            placeholder="Create a password"
             required
           />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? 'Signing up...' : 'Sign Up'}
-          </Button>
-        </form>
-        <Button
-          fullWidth
-          sx={{ mt: 1 }}
-          onClick={() => setPage('login')}
-        >
-          Already have an account? Login
-        </Button>
-      </Paper>
-    </Box>
+        </label>
+        <label className="auth-field">
+          <span>Confirm Password</span>
+          <input
+            name="confirmPassword"
+            type="password"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            placeholder="Re-enter your password"
+            required
+          />
+        </label>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Creating Account...' : 'Sign Up'}
+        </button>
+      </form>
+      <button type="button" className="auth-switch" onClick={() => setPage('login')}>
+        Already have an account? Login
+      </button>
+    </div>
   )
 }

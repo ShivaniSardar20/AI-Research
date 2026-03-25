@@ -2,11 +2,39 @@ import { useState, useEffect } from 'react'
 import { listPapers, summarize, extractInsights, deletePaper } from '../utils/api'
 import Spinner from '../components/Spinner'
 
-export default function LibraryPage({ addToast }) {
+const viewConfig = {
+  library: {
+    eyebrow: 'Library',
+    title: 'Manage the papers already indexed in your workspace',
+    copy: 'Generate structured summaries and technical insight bundles directly from stored extracted text.',
+    empty: 'Upload one in the previous section to start generating analysis.',
+    summaryVisible: true,
+    insightsVisible: true,
+  },
+  summarizer: {
+    eyebrow: 'Summarizer',
+    title: 'Generate and review structured paper summaries',
+    copy: 'Focus this view on abstracts, methodology, findings, and limitations for each uploaded paper.',
+    empty: 'Upload papers first, then generate summaries from this workspace view.',
+    summaryVisible: true,
+    insightsVisible: false,
+  },
+  insights: {
+    eyebrow: 'Insights',
+    title: 'Extract technical objectives, concepts, and conclusions',
+    copy: 'Focus this view on technical insight generation and inspection for each paper.',
+    empty: 'Upload papers first, then generate insights from this workspace view.',
+    summaryVisible: false,
+    insightsVisible: true,
+  },
+}
+
+export default function LibraryPage({ addToast, mode = 'library' }) {
   const [papers, setPapers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(null)   // paper object with full data
-  const [processing, setProcessing] = useState({}) // { [id]: 'summarize'|'insights'|null }
+  const [selected, setSelected] = useState(null)
+  const [processing, setProcessing] = useState({})
+  const config = viewConfig[mode] || viewConfig.library
 
   const fetchPapers = async () => {
     try {
@@ -18,169 +46,183 @@ export default function LibraryPage({ addToast }) {
     setLoading(false)
   }
 
-  useEffect(() => { fetchPapers() }, [])
+  useEffect(() => {
+    fetchPapers()
+  }, [])
 
   const triggerAction = async (id, action) => {
-    setProcessing(p => ({ ...p, [id]: action }))
+    setProcessing((prev) => ({ ...prev, [id]: action }))
     try {
       const fn = action === 'summarize' ? summarize : extractInsights
       const result = await fn(id)
-      // Merge result into selected if modal is open for this paper
-      setPapers(prev => prev.map(p => p.id === id ? { ...p, ...result } : p))
-      if (selected?.id === id) setSelected(s => ({ ...s, ...result }))
+      setPapers((prev) => prev.map((paper) => (paper.id === id ? { ...paper, ...result } : paper)))
+      if (selected?.id === id) {
+        setSelected((prev) => ({ ...prev, ...result }))
+      }
       addToast({ type: 'success', message: `${action === 'summarize' ? 'Summary' : 'Insights'} generated.` })
     } catch {
       addToast({ type: 'error', message: `Failed to generate ${action}.` })
     }
-    setProcessing(p => ({ ...p, [id]: null }))
+    setProcessing((prev) => ({ ...prev, [id]: null }))
   }
 
   const handleDelete = async (id) => {
     try {
       await deletePaper(id)
-      setPapers(prev => prev.filter(p => p.id !== id))
-      if (selected?.id === id) setSelected(null)
+      setPapers((prev) => prev.filter((paper) => paper.id !== id))
+      if (selected?.id === id) {
+        setSelected(null)
+      }
       addToast({ type: 'success', message: 'Paper removed.' })
     } catch {
       addToast({ type: 'error', message: 'Delete failed.' })
     }
   }
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#0a0a0f' }}>
-      <Spinner size={36} />
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="loading-shell">
+        <Spinner size={36} />
+      </div>
+    )
+  }
+
+  const papersWithSummary = papers.filter((paper) => paper.summary).length
+  const papersWithInsights = papers.filter((paper) => paper.insights).length
 
   return (
-    <div className="min-h-screen px-4" style={{ paddingTop: '100px', background: '#0a0a0f' }}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', letterSpacing: '3px', textTransform: 'uppercase', color: '#c9a84c', marginBottom: '10px' }}>— Library</p>
-          <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '2rem', color: '#e8e4dc', fontWeight: 400 }}>Your <em style={{ color: '#c9a84c' }}>research</em> collection</h1>
+    <div className="feature-shell">
+      <div className="feature-header">
+        <div>
+          <p className="feature-eyebrow">{config.eyebrow}</p>
+          <h2 className="feature-title">{config.title}</h2>
+          <p className="feature-copy">{config.copy}</p>
         </div>
-
-        {papers.length === 0 ? (
-          <div className="rounded-lg flex flex-col items-center justify-center py-24" style={{ border: '1px solid rgba(201,168,76,0.15)', background: '#0e0e16' }}>
-            <div style={{ fontSize: '2.4rem', opacity: 0.3, marginBottom: '14px' }}>📚</div>
-            <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.7rem', color: '#7a756b' }}>No papers yet. Upload one to get started.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {papers.map(paper => (
-              <div key={paper.id} className="rounded-lg overflow-hidden transition-all duration-200 cursor-pointer"
-                style={{ border: '1px solid rgba(201,168,76,0.15)', background: '#12121a' }}
-                onClick={() => setSelected(paper)}>
-                <div className="flex items-start justify-between p-4 gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.05rem', color: '#e8e4dc', fontWeight: 400, marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {paper.title || paper.filename}
-                    </p>
-                    <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: '#7a756b' }}>
-                      Uploaded {new Date(paper.created_at).toLocaleDateString()} · {paper.filename}
-                    </p>
-                  </div>
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                    {['summarize', 'insights'].map(action => (
-                      <button key={action} onClick={() => triggerAction(paper.id, action)}
-                        disabled={!!processing[paper.id]}
-                        className="transition-all duration-200"
-                        style={{
-                          background: 'transparent',
-                          border: '1px solid rgba(201,168,76,0.3)',
-                          color: '#c9a84c',
-                          padding: '6px 12px',
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: '0.58rem', letterSpacing: '1.5px', textTransform: 'uppercase',
-                          cursor: processing[paper.id] ? 'not-allowed' : 'pointer', borderRadius: '3px',
-                          opacity: processing[paper.id] ? 0.5 : 1
-                        }}>
-                        {processing[paper.id] === action ? <Spinner size={10} /> : action === 'summarize' ? '✦ Summary' : '◈ Insights'}
-                      </button>
-                    ))}
-                    <button onClick={() => handleDelete(paper.id)}
-                      className="transition-colors duration-200"
-                      style={{ background: 'none', border: 'none', color: '#7a756b', cursor: 'pointer', fontSize: '0.85rem', padding: '4px 6px' }}
-                    >✕</button>
-                  </div>
-                </div>
-
-                {/* Quick badges */}
-                <div className="flex flex-wrap gap-2 px-4 pb-3">
-                  {paper.summary && <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem', letterSpacing: '1px', color: '#2ecc71', background: 'rgba(46,204,113,0.1)', padding: '3px 8px', borderRadius: '50px', textTransform: 'uppercase' }}>Summary ready</span>}
-                  {paper.insights && <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.55rem', letterSpacing: '1px', color: '#5dade2', background: 'rgba(93,173,226,0.1)', padding: '3px 8px', borderRadius: '50px', textTransform: 'uppercase' }}>Insights ready</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="stat-strip compact">
+          <div><strong>{papers.length}</strong><span>Total Papers</span></div>
+          <div><strong>{papersWithSummary}</strong><span>Summaries</span></div>
+          <div><strong>{papersWithInsights}</strong><span>Insights</span></div>
+        </div>
       </div>
 
-      {/* Detail Modal */}
-      {selected && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setSelected(null)}>
-          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg" style={{ background: '#12121a', border: '1px solid rgba(201,168,76,0.25)' }} onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="flex items-start justify-between p-5" style={{ borderBottom: '1px solid rgba(201,168,76,0.15)' }}>
-              <div>
-                <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.2rem', color: '#e8e4dc', fontWeight: 400 }}>{selected.title || selected.filename}</p>
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.6rem', color: '#7a756b', marginTop: '4px' }}>{selected.filename}</p>
+      {papers.length === 0 ? (
+        <div className="glass-panel empty-state">
+          <h3>No papers yet</h3>
+          <p>{config.empty}</p>
+        </div>
+      ) : (
+        <div className="library-list">
+          {papers.map((paper) => (
+            <div key={paper.id} className="glass-panel library-card" onClick={() => setSelected(paper)}>
+              <div className="library-card-top">
+                <div>
+                  <h3>{paper.title || paper.filename}</h3>
+                  <p>Uploaded {new Date(paper.created_at).toLocaleDateString()} · {paper.filename}</p>
+                </div>
+                <div className="library-actions" onClick={(e) => e.stopPropagation()}>
+                  {config.summaryVisible && (
+                    <button
+                      type="button"
+                      className="pill-button"
+                      onClick={() => triggerAction(paper.id, 'summarize')}
+                      disabled={!!processing[paper.id]}
+                    >
+                      {processing[paper.id] === 'summarize' ? <Spinner size={10} /> : 'Summary'}
+                    </button>
+                  )}
+                  {config.insightsVisible && (
+                    <button
+                      type="button"
+                      className="pill-button"
+                      onClick={() => triggerAction(paper.id, 'insights')}
+                      disabled={!!processing[paper.id]}
+                    >
+                      {processing[paper.id] === 'insights' ? <Spinner size={10} /> : 'Insights'}
+                    </button>
+                  )}
+                  {!config.summaryVisible && (
+                    <button
+                      type="button"
+                      className="pill-button"
+                      onClick={() => triggerAction(paper.id, 'summarize')}
+                      disabled={!!processing[paper.id]}
+                    >
+                      {processing[paper.id] === 'summarize' ? <Spinner size={10} /> : 'Summary'}
+                    </button>
+                  )}
+                  {!config.insightsVisible && (
+                    <button
+                      type="button"
+                      className="pill-button"
+                      onClick={() => triggerAction(paper.id, 'insights')}
+                      disabled={!!processing[paper.id]}
+                    >
+                      {processing[paper.id] === 'insights' ? <Spinner size={10} /> : 'Insights'}
+                    </button>
+                  )}
+                  <button type="button" className="icon-action" onClick={() => handleDelete(paper.id)}>X</button>
+                </div>
               </div>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#7a756b', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+              <div className="badge-row">
+                <span className={`status-chip ${paper.summary ? 'ready' : ''}`}>{paper.summary ? 'Summary ready' : 'Summary pending'}</span>
+                <span className={`status-chip blue ${paper.insights ? 'ready' : ''}`}>{paper.insights ? 'Insights ready' : 'Insights pending'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selected && (
+        <div className="detail-overlay" onClick={() => setSelected(null)}>
+          <div className="detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="detail-header">
+              <div>
+                <p className="feature-eyebrow">Paper Detail</p>
+                <h3>{selected.title || selected.filename}</h3>
+                <p>{selected.filename}</p>
+              </div>
+              <button type="button" className="icon-action" onClick={() => setSelected(null)}>X</button>
             </div>
 
-            <div className="p-5 flex flex-col gap-6">
-              {/* Summary Section */}
-              {selected.summary && (
-                <div>
-                  <SectionTitle icon="✦" label="Summary" />
-                  {['abstract', 'methodology', 'findings', 'limitations'].map(key => (
-                    selected.summary[key] && (
-                      <div key={key} className="mb-3">
-                        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.58rem', letterSpacing: '2px', textTransform: 'uppercase', color: '#c9a84c', marginBottom: '5px' }}>{key}</p>
-                        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b', lineHeight: 1.85 }}>{selected.summary[key]}</p>
+            <div className="detail-sections">
+              {selected.summary && config.summaryVisible && (
+                <div className="glass-panel feature-panel">
+                  <p className="feature-panel-title">Summary</p>
+                  {['abstract', 'methodology', 'findings', 'limitations'].map((key) => (
+                    selected.summary[key] ? (
+                      <div key={key} className="content-block">
+                        <span>{key}</span>
+                        <p>{selected.summary[key]}</p>
                       </div>
-                    )
+                    ) : null
                   ))}
                 </div>
               )}
 
-              {/* Insights Section */}
-              {selected.insights && (
-                <div>
-                  <SectionTitle icon="◈" label="Technical Insights" />
-                  {['objectives', 'concepts', 'conclusions'].map(key => (
-                    selected.insights[key] && (
-                      <div key={key} className="mb-3">
-                        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.58rem', letterSpacing: '2px', textTransform: 'uppercase', color: '#5dade2', marginBottom: '5px' }}>{key}</p>
-                        <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b', lineHeight: 1.85 }}>{selected.insights[key]}</p>
+              {selected.insights && config.insightsVisible && (
+                <div className="glass-panel feature-panel">
+                  <p className="feature-panel-title">Technical Insights</p>
+                  {['objectives', 'concepts', 'conclusions'].map((key) => (
+                    selected.insights[key] ? (
+                      <div key={key} className="content-block">
+                        <span>{key}</span>
+                        <p>{selected.insights[key]}</p>
                       </div>
-                    )
+                    ) : null
                   ))}
                 </div>
               )}
 
               {!selected.summary && !selected.insights && (
-                <p style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '0.68rem', color: '#7a756b', textAlign: 'center', padding: '20px 0' }}>
-                  Use the <span style={{ color: '#c9a84c' }}>Summary</span> or <span style={{ color: '#5dade2' }}>Insights</span> buttons to generate analysis.
-                </p>
+                <div className="glass-panel empty-state">
+                  <h3>No analysis yet</h3>
+                  <p>Use the action buttons on the card to generate summary or insight content for this paper.</p>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function SectionTitle({ icon, label }) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span style={{ color: '#c9a84c', fontSize: '0.75rem' }}>{icon}</span>
-      <p style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '0.95rem', color: '#e8e4dc', fontWeight: 400 }}>{label}</p>
-      <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.15)', marginLeft: '8px' }} />
     </div>
   )
 }

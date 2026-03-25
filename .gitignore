@@ -2,9 +2,13 @@
 node_modules/
 venv/
 .venv/
+__pycache__/
+*.py[cod]
 
 # Environment
 .env
+.env.local
+.env.production
 
 # Database
 db.sqlite3
@@ -14,6 +18,7 @@ media/
 
 # Build output
 dist/
+build/
 
 # OS
 .DS_Store
