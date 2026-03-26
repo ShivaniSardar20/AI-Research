@@ -4,7 +4,7 @@ AI research workspace for uploading papers, generating summaries, extracting ins
 
 ## Open Links
 
-- Frontend live site: `https://your-netlify-site.netlify.app`
+- Frontend deploy link: `https://your-netlify-site.netlify.app`
 - Backend API: `https://your-render-service.onrender.com/api`
 - Backend health check: `https://your-render-service.onrender.com/health/`
 - GitHub repository: `https://github.com/ShivaniSardar20/AI-Research`
